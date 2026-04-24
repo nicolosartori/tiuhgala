@@ -376,14 +376,6 @@ export function AdminAuctionClient({ jerseys }: { jerseys: Jersey[] }) {
                     </div>
                     <div className="auction-list-price">{formatCHF(jersey.currentPrice)}</div>
                   </button>
-                  <button
-                    type="button"
-                    className="button subtle-danger"
-                    disabled={busy === `delete-${jersey.id}`}
-                    onClick={() => deleteJersey(jersey)}
-                  >
-                    Cancella
-                  </button>
                 </div>
               ))}
             </div>
