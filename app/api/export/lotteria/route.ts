@@ -9,8 +9,10 @@ export async function GET() {
 
   const items = await prisma.lotteryEnvelope.findMany({ orderBy: { number: 'asc' } });
 
-  const rows = ['id,numero,stato,aggiornato_il'];
-  items.forEach((e) => rows.push(`${e.id},${e.number},${e.status},${e.updatedAt.toISOString()}`));
+  const rows = ['id,numero,stato,riservata_da,aggiornato_il'];
+  items.forEach((e) =>
+    rows.push(`${e.id},${e.number},${e.status},${e.reservedBy ?? ''},${e.updatedAt.toISOString()}`)
+  );
 
   return new NextResponse(rows.join('\n'), {
     headers: {

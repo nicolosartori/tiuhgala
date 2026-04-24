@@ -1,79 +1,226 @@
 'use client';
 
+import { useState } from 'react';
+
+type EnvelopeStatus = 'DISPONIBILE' | 'RISERVATA' | 'VENDUTA';
+
+type EnvelopeHistory = {
+  id: number;
+  previousStatus: EnvelopeStatus;
+  newStatus: EnvelopeStatus;
+  reservedBy: string | null;
+  createdAt: string;
+};
+
 type Envelope = {
   id: number;
   number: number;
-  status: 'DISPONIBILE' | 'VENDUTA' | 'INCASSATA';
+  status: EnvelopeStatus;
+  reservedBy: string | null;
   updatedAt: string;
+  history: EnvelopeHistory[];
 };
 
-const labels = {
+const labels: Record<EnvelopeStatus, string> = {
   DISPONIBILE: 'disponibile',
-  VENDUTA: 'venduta',
-  INCASSATA: 'incassata'
+  RISERVATA: 'riservata',
+  VENDUTA: 'venduta'
 };
+
+const sectionOrder: EnvelopeStatus[] = ['RISERVATA', 'DISPONIBILE', 'VENDUTA'];
+
+function formatTimestamp(value: string) {
+  return new Intl.DateTimeFormat('it-CH', {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  }).format(new Date(value));
+}
+
+function sortEnvelopes(items: Envelope[]) {
+  return [...items].sort((a, b) => a.number - b.number);
+}
 
 export function AdminLotteryClient({ envelopes }: { envelopes: Envelope[] }) {
-  const url = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  const status = url.get('status') ?? 'ALL';
-  const q = (url.get('q') ?? '').trim();
+  const [reservedNames, setReservedNames] = useState<Record<number, string>>(
+    Object.fromEntries(envelopes.map((envelope) => [envelope.id, envelope.reservedBy ?? '']))
+  );
+  const [errors, setErrors] = useState<Record<number, string>>({});
+  const [pendingId, setPendingId] = useState<number | null>(null);
 
-  const filtered = envelopes.filter((e) => {
-    const statusOk = status === 'ALL' || e.status === status;
-    const qOk = q.length === 0 || String(e.number).includes(q);
-    return statusOk && qOk;
-  });
-
-  async function updateStatus(id: number, newStatus: Envelope['status']) {
-    const res = await fetch('/api/admin/lotteria', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, status: newStatus })
-    });
-    if (res.ok) window.location.reload();
-  }
+  const grouped = {
+    RISERVATA: sortEnvelopes(envelopes.filter((envelope) => envelope.status === 'RISERVATA')),
+    DISPONIBILE: sortEnvelopes(envelopes.filter((envelope) => envelope.status === 'DISPONIBILE')),
+    VENDUTA: sortEnvelopes(envelopes.filter((envelope) => envelope.status === 'VENDUTA'))
+  };
 
   const counters = {
-    DISPONIBILE: envelopes.filter((e) => e.status === 'DISPONIBILE').length,
-    VENDUTA: envelopes.filter((e) => e.status === 'VENDUTA').length,
-    INCASSATA: envelopes.filter((e) => e.status === 'INCASSATA').length
+    RISERVATA: grouped.RISERVATA.length,
+    DISPONIBILE: grouped.DISPONIBILE.length,
+    VENDUTA: grouped.VENDUTA.length
   };
+
+  async function updateEnvelope(envelope: Envelope, nextStatus: EnvelopeStatus) {
+    const reservedBy = (reservedNames[envelope.id] ?? '').trim();
+
+    if (nextStatus === 'RISERVATA' && reservedBy.length === 0) {
+      setErrors((current) => ({
+        ...current,
+        [envelope.id]: 'Inserire il nome della persona che ha riservato la busta.'
+      }));
+      return;
+    }
+
+    setErrors((current) => ({ ...current, [envelope.id]: '' }));
+    setPendingId(envelope.id);
+
+    try {
+      const res = await fetch('/api/admin/lotteria', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: envelope.id,
+          status: nextStatus,
+          reservedBy
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setErrors((current) => ({
+          ...current,
+          [envelope.id]: data?.error ?? 'Operazione non riuscita.'
+        }));
+        return;
+      }
+
+      window.location.reload();
+    } finally {
+      setPendingId(null);
+    }
+  }
 
   return (
     <div className="row">
       <div className="row row-3">
-        <div className="card"><div>Disponibili</div><div className="big-number">{counters.DISPONIBILE}</div></div>
-        <div className="card"><div>Vendute</div><div className="big-number">{counters.VENDUTA}</div></div>
-        <div className="card"><div>Incassate</div><div className="big-number">{counters.INCASSATA}</div></div>
+        <div className="card">
+          <div>Buste riservate</div>
+          <div className="big-number">{counters.RISERVATA}</div>
+        </div>
+        <div className="card">
+          <div>Buste disponibili</div>
+          <div className="big-number">{counters.DISPONIBILE}</div>
+        </div>
+        <div className="card">
+          <div>Buste vendute</div>
+          <div className="big-number">{counters.VENDUTA}</div>
+        </div>
       </div>
-      <form className="row row-2" method="GET">
-        <select className="select" name="status" defaultValue={status}>
-          <option value="ALL">Tutti gli stati</option>
-          <option value="DISPONIBILE">disponibile</option>
-          <option value="VENDUTA">venduta</option>
-          <option value="INCASSATA">incassata</option>
-        </select>
-        <input className="input" name="q" placeholder="Cerca numero busta" defaultValue={q} />
-        <button className="button" type="submit">Filtra</button>
-      </form>
-      <table className="table">
-        <thead><tr><th>Busta</th><th>Stato</th><th>Azione rapida</th></tr></thead>
-        <tbody>
-          {filtered.map((e) => (
-            <tr key={e.id}>
-              <td>{e.number}</td>
-              <td>{labels[e.status]}</td>
-              <td>
-                <div className="nav">
-                  <button className="button" onClick={() => updateStatus(e.id, 'DISPONIBILE')}>Disponibile</button>
-                  <button className="button" onClick={() => updateStatus(e.id, 'VENDUTA')}>Venduta</button>
-                  <button className="button secondary" onClick={() => updateStatus(e.id, 'INCASSATA')}>Incassata</button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+      {sectionOrder.map((status) => (
+        <section key={status} className="row">
+          <h2 className="section-title">
+            {status === 'RISERVATA'
+              ? 'Buste riservate'
+              : status === 'DISPONIBILE'
+                ? 'Buste disponibili'
+                : 'Buste vendute'}
+          </h2>
+          <div className="row">
+            {grouped[status].map((envelope) => {
+              const reservedBy = reservedNames[envelope.id] ?? '';
+              const disabled = pendingId === envelope.id;
+
+              return (
+                <article key={envelope.id} className="card lottery-admin-card">
+                  <div className="lottery-admin-header">
+                    <div>
+                      <div className="big-number">#{envelope.number}</div>
+                      <div className="small">Stato: {labels[envelope.status]}</div>
+                    </div>
+                    <div className={`status-pill ${labels[envelope.status]}`}>{labels[envelope.status]}</div>
+                  </div>
+
+                  <label className="row">
+                    <span>Riservata da</span>
+                    <input
+                      className="input"
+                      value={reservedBy}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setReservedNames((current) => ({ ...current, [envelope.id]: value }));
+                        setErrors((current) => ({ ...current, [envelope.id]: '' }));
+                      }}
+                      placeholder="Nome e cognome"
+                    />
+                  </label>
+
+                  {envelope.reservedBy ? (
+                    <div className="small">Riservata da: {envelope.reservedBy}</div>
+                  ) : (
+                    <div className="small">Nessuna prenotazione registrata.</div>
+                  )}
+
+                  <div className="nav">
+                    <button
+                      type="button"
+                      className="button secondary"
+                      disabled={disabled}
+                      onClick={() => updateEnvelope(envelope, 'RISERVATA')}
+                    >
+                      Riservata
+                    </button>
+                    <button
+                      type="button"
+                      className="button"
+                      disabled={disabled}
+                      onClick={() => updateEnvelope(envelope, 'DISPONIBILE')}
+                    >
+                      Disponibile
+                    </button>
+                    <button
+                      type="button"
+                      className="button"
+                      disabled={disabled}
+                      onClick={() => updateEnvelope(envelope, 'VENDUTA')}
+                    >
+                      Venduta
+                    </button>
+                  </div>
+
+                  {errors[envelope.id] ? <p className="error-text">{errors[envelope.id]}</p> : null}
+
+                  <details className="history-box">
+                    <summary>Mostra storico</summary>
+                    {envelope.history.length === 0 ? (
+                      <p className="small">Nessuna variazione registrata.</p>
+                    ) : (
+                      <ul className="history-list">
+                        {envelope.history.map((entry) => (
+                          <li key={entry.id}>
+                            <strong>{formatTimestamp(entry.createdAt)}</strong>
+                            {' - '}
+                            {labels[entry.previousStatus]} {'>'} {labels[entry.newStatus]}
+                            {entry.reservedBy ? ` - ${entry.reservedBy}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </details>
+                </article>
+              );
+            })}
+            {grouped[status].length === 0 ? (
+              <div className="small">
+                {status === 'RISERVATA'
+                  ? 'Nessuna busta riservata.'
+                  : status === 'DISPONIBILE'
+                    ? 'Nessuna busta disponibile.'
+                    : 'Nessuna busta venduta.'}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

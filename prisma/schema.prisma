@@ -9,8 +9,8 @@ datasource db {
 
 enum EnvelopeStatus {
   DISPONIBILE
+  RISERVATA
   VENDUTA
-  INCASSATA
 }
 
 enum JerseyStatus {
@@ -19,10 +19,23 @@ enum JerseyStatus {
 }
 
 model LotteryEnvelope {
-  id        Int            @id @default(autoincrement())
-  number    Int            @unique
-  status    EnvelopeStatus @default(DISPONIBILE)
-  updatedAt DateTime       @updatedAt
+  id         Int                     @id @default(autoincrement())
+  number     Int                     @unique
+  status     EnvelopeStatus          @default(DISPONIBILE)
+  reservedBy String?
+  updatedAt  DateTime                @updatedAt
+  history    LotteryEnvelopeHistory[]
+}
+
+model LotteryEnvelopeHistory {
+  id             Int            @id @default(autoincrement())
+  envelopeId     Int
+  previousStatus EnvelopeStatus
+  newStatus      EnvelopeStatus
+  reservedBy     String?
+  createdAt      DateTime       @default(now())
+
+  envelope LotteryEnvelope @relation(fields: [envelopeId], references: [id], onDelete: Cascade)
 }
 
 model Jersey {

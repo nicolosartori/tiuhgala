@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { formatCHF } from '@/lib/format';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AstaPage() {
   const jerseys = await prisma.jersey.findMany({ orderBy: [{ playerNumber: 'asc' }] });
 

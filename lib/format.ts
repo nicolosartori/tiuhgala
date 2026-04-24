@@ -7,8 +7,9 @@ export function formatCHF(value: number | string) {
   }).format(amount);
 }
 
-export function envelopeStatusLabel(status: 'DISPONIBILE' | 'VENDUTA' | 'INCASSATA') {
+export function envelopeStatusLabel(status: 'DISPONIBILE' | 'RISERVATA' | 'VENDUTA') {
   if (status === 'DISPONIBILE') return 'disponibile';
+  if (status === 'RISERVATA') return 'riservata';
   if (status === 'VENDUTA') return 'venduta';
-  return 'incassata';
+  return status;
 }
