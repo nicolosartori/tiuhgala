@@ -2,8 +2,13 @@
   --blue: #0d3b8e;
   --red: #d71920;
   --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-dark: #081a44;
   --text: #1a1a1a;
   --muted: #6b7280;
+  --line: #e5e7eb;
+  --green: #12b76a;
+  --shadow: 0 24px 60px rgba(8, 26, 68, 0.12);
 }
 * { box-sizing: border-box; }
 body {
@@ -37,13 +42,13 @@ a { color: inherit; text-decoration: none; }
   opacity: 0.6;
   cursor: wait;
 }
-.card { border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; background: white; }
+.card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: white; }
 .stat-block {
   margin: 18px 0;
   padding: 14px;
   border-radius: 12px;
   background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
 }
 .grid-envelope {
   display: grid;
@@ -62,13 +67,15 @@ a { color: inherit; text-decoration: none; }
 .envelope.riservata { background: #eef4ff; border-color: var(--blue); }
 .envelope.venduta { background: #fff5e8; border-color: #e59b2f; }
 .table { width: 100%; border-collapse: collapse; }
-.table th, .table td { border-bottom: 1px solid #e5e7eb; padding: 10px; text-align: left; }
+.table th, .table td { border-bottom: 1px solid var(--line); padding: 10px; text-align: left; }
 .input, .select {
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 10px;
   padding: 10px;
   font-size: 16px;
+  background: #fff;
+  color: var(--text);
 }
 .row { display: grid; gap: 10px; }
 @media (min-width: 720px) {
@@ -105,7 +112,7 @@ a { color: inherit; text-decoration: none; }
   font-weight: 600;
 }
 .history-box {
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--line);
   padding-top: 10px;
 }
 .history-box summary {
@@ -119,9 +126,393 @@ a { color: inherit; text-decoration: none; }
 .lookup-input {
   font-size: 18px;
 }
+
+.home-dashboard-page {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.home-dashboard-page .dashboard-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.home-dashboard-page .hero-board {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+  border-radius: 28px;
+  background:
+    linear-gradient(145deg, rgba(8, 26, 68, 0.96), rgba(13, 59, 142, 0.9)),
+    linear-gradient(90deg, var(--blue), var(--red));
+  color: #fff;
+  box-shadow: 0 28px 80px rgba(8, 26, 68, 0.3);
+}
+
+.home-dashboard-page .hero-board::before,
+.home-dashboard-page .hero-board::after {
+  content: "";
+  position: absolute;
+  inset: auto;
+  border-radius: 999px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.home-dashboard-page .hero-board::before {
+  width: 260px;
+  height: 260px;
+  top: -120px;
+  right: -60px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.45), transparent 70%);
+}
+
+.home-dashboard-page .hero-board::after {
+  width: 220px;
+  height: 220px;
+  bottom: -120px;
+  left: -40px;
+  background: radial-gradient(circle, rgba(215, 25, 32, 0.55), transparent 70%);
+}
+
+.home-dashboard-page .hero-copy,
+.home-dashboard-page .ticker-strip,
+.home-dashboard-page .dashboard-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.home-dashboard-page .hero-kicker,
+.home-dashboard-page .panel-label {
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.home-dashboard-page .hero-board h1 {
+  margin: 0;
+  max-width: 760px;
+  font-size: clamp(34px, 6vw, 66px);
+  line-height: 0.95;
+}
+
+.home-dashboard-page .hero-text {
+  margin: 0;
+  max-width: 680px;
+  font-size: clamp(16px, 2vw, 21px);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.home-dashboard-page .ticker-strip {
+  display: grid;
+  gap: 10px;
+}
+
+.home-dashboard-page .ticker-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+}
+
+.home-dashboard-page .ticker-item strong {
+  font-size: 16px;
+}
+
+.home-dashboard-page .dashboard-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.home-dashboard-page .market-panel {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 18px;
+  min-height: 320px;
+  padding: 22px;
+  border-radius: 24px;
+  color: #fff;
+  box-shadow: 0 22px 70px rgba(8, 26, 68, 0.22);
+}
+
+.home-dashboard-page .lottery-panel {
+  background:
+    linear-gradient(160deg, rgba(215, 25, 32, 0.94), rgba(127, 8, 14, 0.9)),
+    #8c0b14;
+}
+
+.home-dashboard-page .auction-panel {
+  background:
+    linear-gradient(160deg, rgba(8, 26, 68, 0.98), rgba(13, 59, 142, 0.92)),
+    #081a44;
+}
+
+.home-dashboard-page .panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-dashboard-page .panel-head h2 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 42px);
+}
+
+.home-dashboard-page .pulse-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.18);
+}
+
+.home-dashboard-page .market-number {
+  font-size: clamp(88px, 16vw, 150px);
+  line-height: 0.9;
+  font-weight: 900;
+  letter-spacing: -0.06em;
+}
+
+.home-dashboard-page .market-alert {
+  margin: 0;
+  font-size: clamp(18px, 3vw, 28px);
+  font-weight: 700;
+}
+
+.home-dashboard-page .market-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-dashboard-page .market-stat,
+.home-dashboard-page .auction-card,
+.home-dashboard-page .auction-empty {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.home-dashboard-page .market-stat span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.home-dashboard-page .market-stat strong {
+  font-size: 26px;
+}
+
+.home-dashboard-page .market-footer {
+  margin-top: auto;
+  display: grid;
+  gap: 14px;
+}
+
+.home-dashboard-page .market-footer p {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.home-dashboard-page .cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-width: 220px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--panel-dark);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.home-dashboard-page .auction-card {
+  display: grid;
+  gap: 12px;
+}
+
+.home-dashboard-page .auction-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.home-dashboard-page .auction-player {
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+}
+
+.home-dashboard-page .auction-price {
+  font-size: clamp(44px, 8vw, 74px);
+  font-weight: 900;
+  line-height: 0.95;
+}
+
+.home-dashboard-page .auction-timestamp,
+.home-dashboard-page .auction-empty {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.admin-auction-page,
+.admin-auction-page .card {
+  box-shadow: var(--shadow);
+}
+
+.admin-auction-page .auction-admin-shell,
+.admin-auction-page .auction-detail-card,
+.admin-auction-page .auction-toolbar,
+.admin-auction-page .create-jersey-card {
+  gap: 16px;
+}
+
+.admin-auction-page .auction-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-auction-page .auction-list-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #ffffff, #f5f8ff);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-auction-page .auction-list-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-auction-page .auction-list-number {
+  min-width: 68px;
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--blue);
+}
+
+.admin-auction-page .auction-list-name {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.admin-auction-page .auction-list-price {
+  font-size: 24px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.admin-auction-page .auction-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.admin-auction-page .auction-detail-header h2,
+.admin-auction-page .create-jersey-card h2 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 40px);
+}
+
+.admin-auction-page .auction-detail-metrics {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-auction-page .auction-detail-metrics .card {
+  background: linear-gradient(180deg, #f8fbff, #eef4ff);
+}
+
+.admin-auction-page .bid-form-card {
+  align-items: end;
+}
+
+.admin-auction-page .auction-history {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-auction-page .history-entry {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f8fbff;
+}
+
+.admin-auction-page .history-amount {
+  font-size: 22px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 @media (max-width: 560px) {
   .button-row,
   .reserve-row {
     grid-template-columns: 1fr 1fr;
+  }
+  .home-dashboard-page .market-stats,
+  .admin-auction-page .auction-detail-metrics,
+  .row-3,
+  .row-2,
+  .admin-auction-page .bid-form-card {
+    grid-template-columns: 1fr;
+  }
+  .admin-auction-page .auction-list-item,
+  .admin-auction-page .auction-detail-header,
+  .admin-auction-page .auction-list-main,
+  .admin-auction-page .history-entry {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .admin-auction-page .auction-list-price,
+  .admin-auction-page .history-amount {
+    white-space: normal;
+  }
+}
+
+@media (min-width: 900px) {
+  .home-dashboard-page .hero-board {
+    grid-template-columns: 1.6fr 0.9fr;
+    align-items: end;
+  }
+  .home-dashboard-page .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-auction-page .auction-detail-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

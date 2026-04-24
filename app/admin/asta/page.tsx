@@ -12,7 +12,7 @@ export default async function AdminAstaPage() {
   });
 
   return (
-    <div className="card">
+    <div className="card admin-auction-page">
       <h1>Admin Asta Maglie</h1>
       <AdminAuctionClient
         jerseys={jerseys.map((j) => ({

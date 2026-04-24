@@ -9,7 +9,6 @@ export function SiteHeader() {
           <Link href="/">Home</Link>
           <Link href="/lotteria">Lotteria</Link>
           <Link href="/asta">Asta Maglie</Link>
-          <Link href="/admin" className="secondary">Admin</Link>
         </nav>
       </div>
     </>
