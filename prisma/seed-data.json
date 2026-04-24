@@ -1,0 +1,8 @@
+[
+  { "playerNumber": 4, "playerSurname": "Rossi", "startingPrice": 50 },
+  { "playerNumber": 7, "playerSurname": "Bianchi", "startingPrice": 50 },
+  { "playerNumber": 9, "playerSurname": "Ferretti", "startingPrice": 50 },
+  { "playerNumber": 10, "playerSurname": "Donati", "startingPrice": 50 },
+  { "playerNumber": 13, "playerSurname": "Moresi", "startingPrice": 50 },
+  { "playerNumber": 15, "playerSurname": "Brenna", "startingPrice": 50 }
+]
