@@ -46,6 +46,7 @@ export function AdminLotteryClient({ envelopes }: { envelopes: Envelope[] }) {
   );
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [lookupValue, setLookupValue] = useState('');
 
   const grouped = {
     RISERVATA: sortEnvelopes(envelopes.filter((envelope) => envelope.status === 'RISERVATA')),
@@ -58,6 +59,12 @@ export function AdminLotteryClient({ envelopes }: { envelopes: Envelope[] }) {
     DISPONIBILE: grouped.DISPONIBILE.length,
     VENDUTA: grouped.VENDUTA.length
   };
+
+  const lookupNumber = lookupValue.length > 0 ? Number(lookupValue) : null;
+  const lookupResults =
+    lookupNumber && Number.isInteger(lookupNumber)
+      ? envelopes.filter((envelope) => envelope.number === lookupNumber)
+      : [];
 
   async function updateEnvelope(envelope: Envelope, nextStatus: EnvelopeStatus) {
     const reservedBy = (reservedNames[envelope.id] ?? '').trim();
@@ -116,7 +123,118 @@ export function AdminLotteryClient({ envelopes }: { envelopes: Envelope[] }) {
         </div>
       </div>
 
-      {sectionOrder.map((status) => (
+      <section className="card row">
+        <label className="row">
+          <span>Cerca busta</span>
+          <input
+            className="input lookup-input"
+            inputMode="numeric"
+            min="1"
+            max="100"
+            pattern="[0-9]*"
+            type="number"
+            value={lookupValue}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              if (nextValue === '') {
+                setLookupValue('');
+                return;
+              }
+
+              const parsed = Number(nextValue);
+              if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) return;
+              setLookupValue(nextValue);
+            }}
+            placeholder="Inserisci il numero della busta"
+          />
+        </label>
+      </section>
+
+      {lookupValue.length > 0 ? (
+        <section className="row">
+          {lookupResults.length === 0 ? (
+            <div className="card small">Nessuna busta trovata</div>
+          ) : (
+            <div className="row">
+              {sortEnvelopes(lookupResults).map((envelope) => {
+                const reservedBy = reservedNames[envelope.id] ?? '';
+                const disabled = pendingId === envelope.id;
+                const reserveInputDisabled = disabled || envelope.status === 'RISERVATA';
+
+                return (
+                  <article key={envelope.id} className="card lottery-admin-card">
+                    <div className="big-number">#{envelope.number}</div>
+
+                    <div className="button-row">
+                      <button
+                        type="button"
+                        className={`button ${envelope.status === 'DISPONIBILE' ? 'secondary current-status' : ''}`}
+                        disabled={disabled || envelope.status === 'DISPONIBILE'}
+                        onClick={() => updateEnvelope(envelope, 'DISPONIBILE')}
+                      >
+                        Disponibile
+                      </button>
+                      <button
+                        type="button"
+                        className={`button ${envelope.status === 'VENDUTA' ? 'secondary current-status' : ''}`}
+                        disabled={disabled || envelope.status === 'VENDUTA'}
+                        onClick={() => updateEnvelope(envelope, 'VENDUTA')}
+                      >
+                        Venduta
+                      </button>
+                    </div>
+
+                    <div className="reserve-row">
+                      <button
+                        type="button"
+                        className={`button ${envelope.status === 'RISERVATA' ? 'secondary current-status' : ''}`}
+                        disabled={disabled || envelope.status === 'RISERVATA'}
+                        onClick={() => updateEnvelope(envelope, 'RISERVATA')}
+                      >
+                        Riservata
+                      </button>
+                      <input
+                        className="input"
+                        value={reservedBy}
+                        disabled={reserveInputDisabled}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setReservedNames((current) => ({ ...current, [envelope.id]: value }));
+                          setErrors((current) => ({ ...current, [envelope.id]: '' }));
+                        }}
+                        placeholder="Nome e cognome"
+                      />
+                    </div>
+
+                    {errors[envelope.id] ? <p className="error-text">{errors[envelope.id]}</p> : null}
+
+                    <details className="history-box">
+                      <summary>Mostra storico</summary>
+                      {envelope.history.length === 0 ? (
+                        <p className="small">Nessuna variazione registrata.</p>
+                      ) : (
+                        <ul className="history-list">
+                          {envelope.history.map((entry) => (
+                            <li key={entry.id}>
+                              <strong>{formatTimestamp(entry.createdAt)}</strong>
+                              {' - '}
+                              {labels[entry.previousStatus]} {'>'} {labels[entry.newStatus]}
+                              {entry.reservedBy ? ` - ${entry.reservedBy}` : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </details>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {lookupValue.length === 0
+        ? sectionOrder.map((status) => (
         <section key={status} className="row">
           <h2 className="section-title">
             {status === 'RISERVATA'
@@ -129,22 +247,44 @@ export function AdminLotteryClient({ envelopes }: { envelopes: Envelope[] }) {
             {grouped[status].map((envelope) => {
               const reservedBy = reservedNames[envelope.id] ?? '';
               const disabled = pendingId === envelope.id;
+              const reserveInputDisabled = disabled || envelope.status === 'RISERVATA';
 
               return (
                 <article key={envelope.id} className="card lottery-admin-card">
-                  <div className="lottery-admin-header">
-                    <div>
-                      <div className="big-number">#{envelope.number}</div>
-                      <div className="small">Stato: {labels[envelope.status]}</div>
-                    </div>
-                    <div className={`status-pill ${labels[envelope.status]}`}>{labels[envelope.status]}</div>
+                  <div className="big-number">#{envelope.number}</div>
+
+                  <div className="button-row">
+                    <button
+                      type="button"
+                      className={`button ${envelope.status === 'DISPONIBILE' ? 'secondary current-status' : ''}`}
+                      disabled={disabled || envelope.status === 'DISPONIBILE'}
+                      onClick={() => updateEnvelope(envelope, 'DISPONIBILE')}
+                    >
+                      Disponibile
+                    </button>
+                    <button
+                      type="button"
+                      className={`button ${envelope.status === 'VENDUTA' ? 'secondary current-status' : ''}`}
+                      disabled={disabled || envelope.status === 'VENDUTA'}
+                      onClick={() => updateEnvelope(envelope, 'VENDUTA')}
+                    >
+                      Venduta
+                    </button>
                   </div>
 
-                  <label className="row">
-                    <span>Riservata da</span>
+                  <div className="reserve-row">
+                    <button
+                      type="button"
+                      className={`button ${envelope.status === 'RISERVATA' ? 'secondary current-status' : ''}`}
+                      disabled={disabled || envelope.status === 'RISERVATA'}
+                      onClick={() => updateEnvelope(envelope, 'RISERVATA')}
+                    >
+                      Riservata
+                    </button>
                     <input
                       className="input"
                       value={reservedBy}
+                      disabled={reserveInputDisabled}
                       onChange={(event) => {
                         const value = event.target.value;
                         setReservedNames((current) => ({ ...current, [envelope.id]: value }));
@@ -152,39 +292,6 @@ export function AdminLotteryClient({ envelopes }: { envelopes: Envelope[] }) {
                       }}
                       placeholder="Nome e cognome"
                     />
-                  </label>
-
-                  {envelope.reservedBy ? (
-                    <div className="small">Riservata da: {envelope.reservedBy}</div>
-                  ) : (
-                    <div className="small">Nessuna prenotazione registrata.</div>
-                  )}
-
-                  <div className="nav">
-                    <button
-                      type="button"
-                      className="button secondary"
-                      disabled={disabled}
-                      onClick={() => updateEnvelope(envelope, 'RISERVATA')}
-                    >
-                      Riservata
-                    </button>
-                    <button
-                      type="button"
-                      className="button"
-                      disabled={disabled}
-                      onClick={() => updateEnvelope(envelope, 'DISPONIBILE')}
-                    >
-                      Disponibile
-                    </button>
-                    <button
-                      type="button"
-                      className="button"
-                      disabled={disabled}
-                      onClick={() => updateEnvelope(envelope, 'VENDUTA')}
-                    >
-                      Venduta
-                    </button>
                   </div>
 
                   {errors[envelope.id] ? <p className="error-text">{errors[envelope.id]}</p> : null}
@@ -220,7 +327,8 @@ export function AdminLotteryClient({ envelopes }: { envelopes: Envelope[] }) {
             ) : null}
           </div>
         </section>
-      ))}
+      ))
+        : null}
     </div>
   );
 }
