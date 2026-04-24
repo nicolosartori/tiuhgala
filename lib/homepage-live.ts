@@ -1,6 +1,30 @@
 import { prisma } from '@/lib/prisma';
 
-export async function getHomepageLiveData() {
+export type HomepageLiveData = {
+  intervalSeconds: number;
+  lottery: {
+    availableCount: number;
+    reservedCount: number;
+    soldCount: number;
+  };
+  auction: {
+    latestBid: {
+      jerseyNumber: number;
+      playerName: string;
+      amount: string;
+      createdAt: string;
+    } | null;
+    topJerseys: Array<{
+      id: number;
+      jerseyNumber: number;
+      playerName: string;
+      amount: string;
+    }>;
+    hasJerseys: boolean;
+  };
+};
+
+export async function getHomepageLiveData(): Promise<HomepageLiveData> {
   const [config, latestBid, topJerseys, jerseyCount, availableCount, reservedCount, soldCount] = await Promise.all([
     prisma.appConfig.findUnique({ where: { id: 1 } }),
     prisma.bid.findFirst({

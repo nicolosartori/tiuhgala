@@ -7,17 +7,29 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
   }
 
-  const { homepageAuctionRotationSeconds } = await req.json();
-  const value = Number(homepageAuctionRotationSeconds);
+  const { homepageAuctionRotationSeconds, projectionImageRotationSeconds } = await req.json();
+  const homepageValue = Number(homepageAuctionRotationSeconds);
+  const projectionValue = Number(projectionImageRotationSeconds);
 
-  if (!Number.isInteger(value) || value < 5 || value > 300) {
+  if (!Number.isInteger(homepageValue) || homepageValue < 5 || homepageValue > 300) {
+    return NextResponse.json({ error: 'Inserire un valore tra 5 e 300 secondi' }, { status: 400 });
+  }
+
+  if (!Number.isInteger(projectionValue) || projectionValue < 5 || projectionValue > 300) {
     return NextResponse.json({ error: 'Inserire un valore tra 5 e 300 secondi' }, { status: 400 });
   }
 
   await prisma.appConfig.upsert({
     where: { id: 1 },
-    update: { homepageAuctionRotationSeconds: value },
-    create: { id: 1, homepageAuctionRotationSeconds: value }
+    update: {
+      homepageAuctionRotationSeconds: homepageValue,
+      projectionImageRotationSeconds: projectionValue
+    },
+    create: {
+      id: 1,
+      homepageAuctionRotationSeconds: homepageValue,
+      projectionImageRotationSeconds: projectionValue
+    }
   });
 
   return NextResponse.json({ ok: true });

@@ -82,3 +82,36 @@ export async function PUT(req: Request) {
 
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(req: Request) {
+  if (!(await isAdminAuthenticated())) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  }
+
+  const { jerseyId } = await req.json();
+  const numericId = Number(jerseyId);
+
+  if (!Number.isInteger(numericId) || numericId <= 0) {
+    return NextResponse.json({ error: 'Maglia non valida' }, { status: 400 });
+  }
+
+  const jersey = await prisma.jersey.findUnique({
+    where: { id: numericId },
+    include: { bids: { select: { id: true }, take: 1 } }
+  });
+
+  if (!jersey) {
+    return NextResponse.json({ error: 'Maglia non trovata' }, { status: 404 });
+  }
+
+  if (jersey.bids.length > 0) {
+    return NextResponse.json(
+      { error: 'Impossibile cancellare una maglia che contiene offerte registrate' },
+      { status: 400 }
+    );
+  }
+
+  await prisma.jersey.delete({ where: { id: numericId } });
+
+  return NextResponse.json({ ok: true });
+}

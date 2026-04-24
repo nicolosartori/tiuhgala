@@ -18,6 +18,7 @@ export function SiteHeader() {
       <div className="container">
         <nav className="nav">
           <Link href="/">Home</Link>
+          <Link href="/admin">Admin</Link>
           <Link href="/admin/lotteria">Admin Lotteria</Link>
           <Link href="/admin/asta">Admin Asta Maglie</Link>
         </nav>

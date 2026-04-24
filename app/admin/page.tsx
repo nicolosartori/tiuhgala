@@ -33,7 +33,10 @@ export default async function AdminPage() {
         </div>
         <LogoutButton />
       </div>
-      <AdminHomepageSettings initialInterval={config?.homepageAuctionRotationSeconds ?? 30} />
+      <AdminHomepageSettings
+        initialHomepageInterval={config?.homepageAuctionRotationSeconds ?? 30}
+        initialProjectionInterval={config?.projectionImageRotationSeconds ?? 20}
+      />
     </div>
   );
 }

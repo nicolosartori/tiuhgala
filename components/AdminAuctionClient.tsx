@@ -45,6 +45,7 @@ export function AdminAuctionClient({ jerseys }: { jerseys: Jersey[] }) {
   const [createForm, setCreateForm] = useState<CreateForm>(emptyCreateForm);
   const [createError, setCreateError] = useState('');
   const [bidErrors, setBidErrors] = useState<Record<number, string>>({});
+  const [deleteError, setDeleteError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
 
   const sortedJerseys = [...jerseys].sort((a, b) => a.playerNumber - b.playerNumber);
@@ -135,6 +136,42 @@ export function AdminAuctionClient({ jerseys }: { jerseys: Jersey[] }) {
 
       setCreateOpen(false);
       setCreateForm(emptyCreateForm);
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function deleteJersey(jersey: Jersey) {
+    setDeleteError('');
+
+    const confirmed = window.confirm(
+      'Sei sicuro di voler cancellare questa maglia? Questa operazione non può essere annullata.'
+    );
+
+    if (!confirmed) return;
+
+    setBusy(`delete-${jersey.id}`);
+
+    try {
+      const res = await fetch('/api/admin/asta', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jerseyId: jersey.id })
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setDeleteError(data?.error ?? 'Errore cancellazione maglia');
+        return;
+      }
+
+      setSelectedId((current) => (current === jersey.id ? null : current));
+      setSearchValue((current) =>
+        current.trim() === String(jersey.playerNumber) || current.trim().toLowerCase() === jersey.playerSurname.toLowerCase()
+          ? ''
+          : current
+      );
       router.refresh();
     } finally {
       setBusy(null);
@@ -253,6 +290,16 @@ export function AdminAuctionClient({ jerseys }: { jerseys: Jersey[] }) {
               Torna alla lista
             </button>
           </div>
+          <div className="auction-detail-actions">
+            <button
+              type="button"
+              className="button subtle-danger"
+              disabled={busy === `delete-${activeJersey.id}`}
+              onClick={() => deleteJersey(activeJersey)}
+            >
+              Cancella maglia
+            </button>
+          </div>
 
           <div className="auction-detail-metrics">
             <div className="card">
@@ -284,6 +331,7 @@ export function AdminAuctionClient({ jerseys }: { jerseys: Jersey[] }) {
             </button>
           </form>
           {bidErrors[activeJersey.id] ? <p className="error-text">{bidErrors[activeJersey.id]}</p> : null}
+          {deleteError ? <p className="error-text">{deleteError}</p> : null}
 
           <div className="row">
             <h3>Storico offerte</h3>
@@ -307,26 +355,36 @@ export function AdminAuctionClient({ jerseys }: { jerseys: Jersey[] }) {
       ) : (
         <section className="card row">
           <h2>Elenco maglie</h2>
+          {deleteError ? <p className="error-text">{deleteError}</p> : null}
           {filteredJerseys.length === 0 ? (
             <p className="small">Nessuna maglia trovata</p>
           ) : (
             <div className="auction-list">
               {filteredJerseys.map((jersey) => (
-                <button
-                  key={jersey.id}
-                  type="button"
-                  className="auction-list-item"
-                  onClick={() => setSelectedId(jersey.id)}
-                >
-                  <div className="auction-list-main">
-                    <div className="auction-list-number">#{jersey.playerNumber}</div>
-                    <div>
-                      <div className="auction-list-name">{jersey.playerSurname}</div>
-                      <div className="small">Offerta attuale</div>
+                <div key={jersey.id} className="auction-list-item-row">
+                  <button
+                    type="button"
+                    className="auction-list-item"
+                    onClick={() => setSelectedId(jersey.id)}
+                  >
+                    <div className="auction-list-main">
+                      <div className="auction-list-number">#{jersey.playerNumber}</div>
+                      <div>
+                        <div className="auction-list-name">{jersey.playerSurname}</div>
+                        <div className="small">Offerta attuale</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="auction-list-price">{formatCHF(jersey.currentPrice)}</div>
-                </button>
+                    <div className="auction-list-price">{formatCHF(jersey.currentPrice)}</div>
+                  </button>
+                  <button
+                    type="button"
+                    className="button subtle-danger"
+                    disabled={busy === `delete-${jersey.id}`}
+                    onClick={() => deleteJersey(jersey)}
+                  >
+                    Cancella
+                  </button>
+                </div>
               ))}
             </div>
           )}

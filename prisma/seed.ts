@@ -6,10 +6,14 @@ const prisma = new PrismaClient();
 async function main() {
   await prisma.appConfig.upsert({
     where: { id: 1 },
-    update: {},
+    update: {
+      homepageAuctionRotationSeconds: 30,
+      projectionImageRotationSeconds: 20
+    },
     create: {
       id: 1,
-      homepageAuctionRotationSeconds: 30
+      homepageAuctionRotationSeconds: 30,
+      projectionImageRotationSeconds: 20
     }
   });
 

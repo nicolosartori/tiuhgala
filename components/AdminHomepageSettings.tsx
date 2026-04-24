@@ -2,8 +2,17 @@
 
 import { useState } from 'react';
 
-export function AdminHomepageSettings({ initialInterval }: { initialInterval: number }) {
-  const [value, setValue] = useState(String(initialInterval));
+type AdminHomepageSettingsProps = {
+  initialHomepageInterval: number;
+  initialProjectionInterval: number;
+};
+
+export function AdminHomepageSettings({
+  initialHomepageInterval,
+  initialProjectionInterval
+}: AdminHomepageSettingsProps) {
+  const [homepageValue, setHomepageValue] = useState(String(initialHomepageInterval));
+  const [projectionValue, setProjectionValue] = useState(String(initialProjectionInterval));
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -17,7 +26,10 @@ export function AdminHomepageSettings({ initialInterval }: { initialInterval: nu
       const response = await fetch('/api/admin/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ homepageAuctionRotationSeconds: Number(value) })
+        body: JSON.stringify({
+          homepageAuctionRotationSeconds: Number(homepageValue),
+          projectionImageRotationSeconds: Number(projectionValue)
+        })
       });
 
       if (!response.ok) {
@@ -34,16 +46,27 @@ export function AdminHomepageSettings({ initialInterval }: { initialInterval: nu
 
   return (
     <section className="card row">
-      <h2>Homepage</h2>
+      <h2>Impostazioni homepage e proiezione</h2>
       <label className="row" style={{ maxWidth: 320 }}>
-        <span>Intervallo rotazione asta homepage</span>
+        <span>Intervallo aggiornamento homepage</span>
         <input
           className="input"
           type="number"
           min="5"
           max="300"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
+          value={homepageValue}
+          onChange={(event) => setHomepageValue(event.target.value)}
+        />
+      </label>
+      <label className="row" style={{ maxWidth: 320 }}>
+        <span>Intervallo rotazione immagini proiezione</span>
+        <input
+          className="input"
+          type="number"
+          min="5"
+          max="300"
+          value={projectionValue}
+          onChange={(event) => setProjectionValue(event.target.value)}
         />
       </label>
       <div className="small">Secondi</div>

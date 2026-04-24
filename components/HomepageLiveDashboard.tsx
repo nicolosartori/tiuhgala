@@ -2,30 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-
-type HomepageLiveData = {
-  intervalSeconds: number;
-  lottery: {
-    availableCount: number;
-    reservedCount: number;
-    soldCount: number;
-  };
-  auction: {
-    latestBid: {
-      jerseyNumber: number;
-      playerName: string;
-      amount: string;
-      createdAt: string;
-    } | null;
-    topJerseys: Array<{
-      id: number;
-      jerseyNumber: number;
-      playerName: string;
-      amount: string;
-    }>;
-    hasJerseys: boolean;
-  };
-};
+import type { HomepageLiveData } from '@/lib/homepage-live';
 
 function formatCHF(value: string) {
   return new Intl.NumberFormat('it-CH', {

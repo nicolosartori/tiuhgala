@@ -91,6 +91,7 @@ docker compose up --build -d
 - `/`
 - `/lotteria`
 - `/asta`
+- `/proiezione`
 
 ## URL admin
 - `/admin`
@@ -258,3 +259,29 @@ Se istanza viene terminata a fine evento, i costi ricorrenti si azzerano quasi t
 - `prisma/seed-data.json` maglie modificabili
 - `Dockerfile` build immagine app
 - `docker-compose.yml` app + postgres
+
+## 14) Vista proiezione
+
+URL pubblico:
+- `/proiezione`
+
+Uso consigliato:
+- schermo orizzontale / proiettore
+- layout ottimizzato per 16:9
+- colonna sinistra con logo, lotteria live e asta live
+- area destra con rotazione automatica immagini della serata
+
+Immagini:
+- cartella: `public/projection-images`
+- formati supportati: `.jpg`, `.jpeg`, `.png`, `.webp`
+- basta copiare i file in questa cartella per renderli disponibili alla proiezione
+
+Configurazione:
+- da `/admin` e possibile impostare:
+  - `Intervallo aggiornamento homepage`
+  - `Intervallo rotazione immagini proiezione`
+
+Nota AWS / Docker:
+- la cartella `public/projection-images` deve essere presente dentro il container o nell'immagine deployata
+- per aggiungere nuove immagini senza cambiare codice, copiare i file nella cartella prima del build oppure montare la cartella come volume nel container
+- dopo aver aggiornato le immagini in ambiente Docker/AWS, riavviare l'app se il filesystem del container non viene aggiornato dinamicamente
