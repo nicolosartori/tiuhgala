@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EnvelopeStatus {
+  DISPONIBILE
+  VENDUTA
+  INCASSATA
+}
+
+enum JerseyStatus {
+  ATTIVA
+  CHIUSA
+}
+
+model LotteryEnvelope {
+  id        Int            @id @default(autoincrement())
+  number    Int            @unique
+  status    EnvelopeStatus @default(DISPONIBILE)
+  updatedAt DateTime       @updatedAt
+}
+
+model Jersey {
+  id            Int          @id @default(autoincrement())
+  playerNumber  Int
+  playerSurname String
+  startingPrice Decimal      @db.Decimal(10, 2)
+  currentPrice  Decimal      @db.Decimal(10, 2)
+  status        JerseyStatus @default(ATTIVA)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  bids          Bid[]
+}
+
+model Bid {
+  id         Int      @id @default(autoincrement())
+  jerseyId   Int
+  bidderName String
+  amount     Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+
+  jersey Jersey @relation(fields: [jerseyId], references: [id], onDelete: Cascade)
+}
