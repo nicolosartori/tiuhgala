@@ -4,6 +4,15 @@ import jerseys from './seed-data.json';
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.appConfig.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      homepageAuctionRotationSeconds: 30
+    }
+  });
+
   const existingEnvelopes = await prisma.lotteryEnvelope.count();
 
   if (existingEnvelopes === 0) {

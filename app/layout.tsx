@@ -1,16 +1,19 @@
 import './globals.css';
 import { SiteHeader } from '@/components/SiteHeader';
+import { isAdminAuthenticated } from '@/lib/auth';
 
 export const metadata = {
   title: 'Ticino Unihockey – Cena di Gala',
   description: 'Gestione lotteria e asta maglie'
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = await isAdminAuthenticated();
+
   return (
     <html lang="it">
       <body>
-        <SiteHeader />
+        {isAuthenticated ? <SiteHeader /> : null}
         <main className="container">{children}</main>
       </body>
     </html>

@@ -59,3 +59,10 @@ model Bid {
 
   jersey Jersey @relation(fields: [jerseyId], references: [id], onDelete: Cascade)
 }
+
+model AppConfig {
+  id                             Int      @id @default(1)
+  homepageAuctionRotationSeconds Int      @default(30)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+}
