@@ -8,6 +8,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Password non valida' }, { status: 401 });
   }
 
-  await setAdminSession();
+  await setAdminSession(req);
   return NextResponse.json({ ok: true });
 }

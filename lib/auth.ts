@@ -16,6 +16,18 @@ export function createSessionToken() {
   return `${payload}.${sign(payload)}`;
 }
 
+function shouldUseSecureCookie(request?: Request) {
+  if (process.env.ADMIN_COOKIE_SECURE === 'true') return true;
+  if (process.env.ADMIN_COOKIE_SECURE === 'false') return false;
+
+  const forwardedProto = request?.headers.get('x-forwarded-proto');
+  if (forwardedProto) {
+    return forwardedProto.split(',')[0].trim() === 'https';
+  }
+
+  return request?.url?.startsWith('https:') ?? process.env.NODE_ENV === 'production';
+}
+
 export function isValidSessionToken(token: string) {
   const [payload, signature] = token.split('.');
   if (!payload || !signature) return false;
@@ -23,12 +35,12 @@ export function isValidSessionToken(token: string) {
   return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
 }
 
-export async function setAdminSession() {
+export async function setAdminSession(request?: Request) {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, createSessionToken(), {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: shouldUseSecureCookie(request),
     path: '/',
     maxAge: 60 * 60 * 12
   });
