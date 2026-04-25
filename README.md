@@ -272,16 +272,33 @@ Uso consigliato:
 - area destra con rotazione automatica immagini della serata
 
 Immagini:
-- cartella: `public/projection-images`
+- storage consigliato: Amazon S3
 - formati supportati: `.jpg`, `.jpeg`, `.png`, `.webp`
-- basta copiare i file in questa cartella per renderli disponibili alla proiezione
+- le immagini si caricano e si cancellano direttamente da `/admin`
 
 Configurazione:
 - da `/admin` e possibile impostare:
   - `Intervallo aggiornamento homepage`
   - `Intervallo rotazione immagini proiezione`
+  - gestione immagini proiezione
+- per le immagini proiezione impostare anche:
+  - `AWS_REGION`
+  - `AWS_S3_PROJECTION_BUCKET`
+  - opzionale `AWS_S3_PUBLIC_BASE_URL`
 
 Nota AWS / Docker:
-- la cartella `public/projection-images` deve essere presente dentro il container o nell'immagine deployata
-- per aggiungere nuove immagini senza cambiare codice, copiare i file nella cartella prima del build oppure montare la cartella come volume nel container
-- dopo aver aggiornato le immagini in ambiente Docker/AWS, riavviare l'app se il filesystem del container non viene aggiornato dinamicamente
+- il bucket S3 evita di consumare spazio disco sull'istanza EC2
+- per l'upload e la cancellazione l'app usa le credenziali AWS disponibili all'istanza o alle variabili ambiente
+- il bucket può essere esposto con URL pubblico o con un `AWS_S3_PUBLIC_BASE_URL`
+
+Setup AWS consigliato:
+1. Creare un bucket S3 nella stessa regione dell'istanza EC2.
+2. Abilitare l'accesso pubblico in lettura solo per gli oggetti delle immagini, ad esempio sotto il prefisso `projection-images/`.
+3. Attaccare all'istanza EC2 un ruolo IAM con permessi `s3:PutObject`, `s3:DeleteObject` e `s3:ListBucket` limitati al bucket e al prefisso immagini.
+4. Impostare nell'ambiente dell'app:
+   - `AWS_REGION`
+   - `AWS_S3_PROJECTION_BUCKET`
+   - se usi CloudFront o un URL pubblico alternativo, anche `AWS_S3_PUBLIC_BASE_URL`
+5. Riavviare l'app con `docker compose up -d --build`.
+
+In questo modo puoi caricare e cancellare immagini da `/admin` senza toccare il filesystem del container e senza ricostruire l'immagine Docker.

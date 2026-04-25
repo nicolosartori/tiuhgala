@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { isAdminAuthenticated } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { LogoutButton } from '@/components/LogoutButton';
 import { LoginForm } from '@/components/LoginForm';
 import { AdminHomepageSettings } from '@/components/AdminHomepageSettings';
+import { AdminProjectionImages } from '@/components/AdminProjectionImages';
+import { listProjectionImages } from '@/lib/projection-images';
 
 export default async function AdminPage() {
   const ok = await isAdminAuthenticated();
@@ -19,7 +20,10 @@ export default async function AdminPage() {
     );
   }
 
-  const config = await prisma.appConfig.findUnique({ where: { id: 1 } });
+  const [config, projectionImages] = await Promise.all([
+    prisma.appConfig.findUnique({ where: { id: 1 } }),
+    listProjectionImages()
+  ]);
 
   return (
     <div className="row">
@@ -37,6 +41,7 @@ export default async function AdminPage() {
         initialHomepageInterval={config?.homepageAuctionRotationSeconds ?? 30}
         initialProjectionInterval={config?.projectionImageRotationSeconds ?? 20}
       />
+      <AdminProjectionImages initialImages={projectionImages} />
     </div>
   );
 }
