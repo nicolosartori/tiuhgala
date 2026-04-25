@@ -66,6 +66,8 @@ Stop:
 docker compose down
 ```
 
+Le immagini della proiezione, in locale, vengono salvate in `public/projection-images` e restano sul disco del computer grazie al mount del volume Docker.
+
 ## 5) Database: migrazioni + seed
 
 L’app container esegue automaticamente all’avvio:
@@ -155,6 +157,10 @@ docker compose exec -T db psql -U postgres -d ticino_gala < backup_ticino_gala.s
 ```
 
 ## 9) Deploy AWS (EC2) step-by-step
+
+Per la proiezione immagini:
+- in locale usare `PROJECTION_IMAGE_STORAGE=local`
+- su AWS usare `PROJECTION_IMAGE_STORAGE=aws` con bucket S3 configurato
 
 ### A. Creare EC2
 - Tipo: `t3.micro`
@@ -275,6 +281,7 @@ Immagini:
 - storage consigliato: Amazon S3
 - formati supportati: `.jpg`, `.jpeg`, `.png`, `.webp`
 - le immagini si caricano e si cancellano direttamente da `/admin`
+- in locale, con `PROJECTION_IMAGE_STORAGE=local`, le immagini vengono salvate in `public/projection-images`
 
 Configurazione:
 - da `/admin` e possibile impostare:
@@ -285,6 +292,8 @@ Configurazione:
   - `AWS_REGION`
   - `AWS_S3_PROJECTION_BUCKET`
   - opzionale `AWS_S3_PUBLIC_BASE_URL`
+  - `PROJECTION_IMAGE_STORAGE=local` in sviluppo locale
+  - `PROJECTION_IMAGE_STORAGE=aws` su EC2 se vuoi forzare S3
 
 Nota AWS / Docker:
 - il bucket S3 evita di consumare spazio disco sull'istanza EC2

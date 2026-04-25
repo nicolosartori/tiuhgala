@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { S3Client, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { mkdir, access, readdir, unlink, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { prisma } from '@/lib/prisma';
 
 export const projectionImageFormats = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -13,6 +15,10 @@ type UploadedProjectionImage = {
   imageUrl: string;
 };
 
+type ProjectionStorageMode = 'local' | 'aws';
+
+const LOCAL_IMAGE_DIR = path.join(process.cwd(), 'public', 'projection-images');
+
 function getRegion() {
   return process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || '';
 }
@@ -23,6 +29,15 @@ function getBucket() {
 
 function getPublicBaseUrl() {
   return process.env.AWS_S3_PUBLIC_BASE_URL || '';
+}
+
+function getConfiguredStorageMode(): ProjectionStorageMode {
+  const explicitMode = process.env.PROJECTION_IMAGE_STORAGE?.toLowerCase();
+  if (explicitMode === 'local' || explicitMode === 'aws') {
+    return explicitMode;
+  }
+
+  return getBucket() && getRegion() ? 'aws' : 'local';
 }
 
 function getS3Client() {
@@ -38,29 +53,14 @@ function encodeKey(key: string) {
     .join('/');
 }
 
-export function getProjectionImageUrl(storageKey: string) {
-  const baseUrl = getPublicBaseUrl();
-  const bucket = getBucket();
-  const region = getRegion();
-
-  if (baseUrl) {
-    return `${baseUrl.replace(/\/$/, '')}/${encodeKey(storageKey)}`;
-  }
-
-  if (!bucket || !region) {
-    return '';
-  }
-
-  return `https://${bucket}.s3.${region}.amazonaws.com/${encodeKey(storageKey)}`;
-}
-
 function buildStorageKey(originalName: string) {
-  const baseName = originalName
-    .replace(/\.[^.]+$/, '')
-    .replace(/[^a-z0-9_-]+/gi, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .toLowerCase() || 'image';
+  const baseName =
+    originalName
+      .replace(/\.[^.]+$/, '')
+      .replace(/[^a-z0-9_-]+/gi, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .toLowerCase() || 'image';
 
   const extension = originalName.split('.').pop()?.toLowerCase() ?? 'jpg';
   return `projection-images/${Date.now()}-${randomUUID()}-${baseName}.${extension}`;
@@ -82,18 +82,81 @@ function normalizeContentType(contentType: string | null, fileName: string) {
   }
 }
 
-function ensureConfigured() {
+function getLocalImagePath(storageKey: string) {
+  return path.join(process.cwd(), 'public', storageKey);
+}
+
+async function ensureLocalImageDir() {
+  await mkdir(LOCAL_IMAGE_DIR, { recursive: true });
+}
+
+async function fileExists(filePath: string) {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getProjectionImageUrl(storageKey: string) {
+  if (getConfiguredStorageMode() === 'local') {
+    return `/${encodeKey(storageKey)}`;
+  }
+
+  const baseUrl = getPublicBaseUrl();
   const bucket = getBucket();
   const region = getRegion();
 
-  if (!bucket || !region) {
-    throw new Error('Configurazione AWS mancante per le immagini di proiezione');
+  if (baseUrl) {
+    return `${baseUrl.replace(/\/$/, '')}/${encodeKey(storageKey)}`;
   }
 
-  return { bucket, region };
+  if (!bucket || !region) {
+    return '';
+  }
+
+  return `https://${bucket}.s3.${region}.amazonaws.com/${encodeKey(storageKey)}`;
 }
 
-export async function listProjectionImages(): Promise<UploadedProjectionImage[]> {
+async function listLocalProjectionImages(): Promise<UploadedProjectionImage[]> {
+  await ensureLocalImageDir();
+
+  const entries = await readdir(LOCAL_IMAGE_DIR, { withFileTypes: true });
+  const files = entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .filter((name) => projectionImageFormats.includes(path.extname(name).toLowerCase()))
+    .sort((a, b) => a.localeCompare(b, 'it'));
+
+  const images = await prisma.projectionImage.findMany({
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]
+  });
+
+  const byStorageKey = new Map(images.map((image) => [image.storageKey, image]));
+
+  return files
+    .map((fileName) => {
+      const storageKey = `projection-images/${fileName}`;
+      const record = byStorageKey.get(storageKey);
+      if (!record) {
+        return null;
+      }
+
+      return {
+        id: record.id,
+        originalName: record.originalName,
+        storageKey: record.storageKey,
+        contentType: record.contentType,
+        createdAt: record.createdAt.toISOString(),
+        imageUrl: getProjectionImageUrl(record.storageKey)
+      } satisfies UploadedProjectionImage;
+    })
+    .filter((image): image is UploadedProjectionImage => Boolean(image))
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+async function listAwsProjectionImages(): Promise<UploadedProjectionImage[]> {
   const images = await prisma.projectionImage.findMany({
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]
   });
@@ -110,27 +173,52 @@ export async function listProjectionImages(): Promise<UploadedProjectionImage[]>
     .filter((image) => image.imageUrl.length > 0);
 }
 
+export async function listProjectionImages(): Promise<UploadedProjectionImage[]> {
+  if (getConfiguredStorageMode() === 'local') {
+    return listLocalProjectionImages();
+  }
+
+  return listAwsProjectionImages();
+}
+
 export async function getProjectionImageUrls() {
   const images = await listProjectionImages();
   return images.map((image) => image.imageUrl);
 }
 
-export async function uploadProjectionImage(file: File) {
-  const { bucket } = ensureConfigured();
+async function storeLocalProjectionImage(file: File, storageKey: string) {
+  await ensureLocalImageDir();
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await writeFile(getLocalImagePath(storageKey), buffer);
+}
 
+async function removeLocalProjectionImage(storageKey: string) {
+  const filePath = getLocalImagePath(storageKey);
+  if (await fileExists(filePath)) {
+    await unlink(filePath);
+  }
+}
+
+export async function uploadProjectionImage(file: File) {
+  const storageMode = getConfiguredStorageMode();
   const originalName = file.name.trim();
   const storageKey = buildStorageKey(originalName);
   const contentType = normalizeContentType(file.type, originalName);
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await getS3Client().send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: storageKey,
-      Body: buffer,
-      ContentType: contentType
-    })
-  );
+  if (storageMode === 'local') {
+    await storeLocalProjectionImage(file, storageKey);
+  } else {
+    const { bucket } = ensureAwsConfigured();
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await getS3Client().send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: storageKey,
+        Body: buffer,
+        ContentType: contentType
+      })
+    );
+  }
 
   let created;
   try {
@@ -142,12 +230,17 @@ export async function uploadProjectionImage(file: File) {
       }
     });
   } catch (error) {
-    await getS3Client().send(
-      new DeleteObjectCommand({
-        Bucket: bucket,
-        Key: storageKey
-      })
-    );
+    if (storageMode === 'local') {
+      await removeLocalProjectionImage(storageKey);
+    } else {
+      const { bucket } = ensureAwsConfigured();
+      await getS3Client().send(
+        new DeleteObjectCommand({
+          Bucket: bucket,
+          Key: storageKey
+        })
+      );
+    }
     throw error;
   }
 
@@ -162,17 +255,32 @@ export async function uploadProjectionImage(file: File) {
 }
 
 export async function deleteProjectionImage(id: number) {
-  const { bucket } = ensureConfigured();
   const image = await prisma.projectionImage.findUnique({ where: { id } });
   if (!image) return false;
 
-  await getS3Client().send(
-    new DeleteObjectCommand({
-      Bucket: bucket,
-      Key: image.storageKey
-    })
-  );
+  if (getConfiguredStorageMode() === 'local') {
+    await removeLocalProjectionImage(image.storageKey);
+  } else {
+    const { bucket } = ensureAwsConfigured();
+    await getS3Client().send(
+      new DeleteObjectCommand({
+        Bucket: bucket,
+        Key: image.storageKey
+      })
+    );
+  }
 
   await prisma.projectionImage.delete({ where: { id } });
   return true;
+}
+
+function ensureAwsConfigured() {
+  const bucket = getBucket();
+  const region = getRegion();
+
+  if (!bucket || !region) {
+    throw new Error('Configurazione AWS mancante per le immagini di proiezione');
+  }
+
+  return { bucket, region };
 }
