@@ -96,19 +96,11 @@ export async function DELETE(req: Request) {
   }
 
   const jersey = await prisma.jersey.findUnique({
-    where: { id: numericId },
-    include: { bids: { select: { id: true }, take: 1 } }
+    where: { id: numericId }
   });
 
   if (!jersey) {
     return NextResponse.json({ error: 'Maglia non trovata' }, { status: 404 });
-  }
-
-  if (jersey.bids.length > 0) {
-    return NextResponse.json(
-      { error: 'Impossibile cancellare una maglia che contiene offerte registrate' },
-      { status: 400 }
-    );
   }
 
   await prisma.jersey.delete({ where: { id: numericId } });
