@@ -229,7 +229,83 @@ docker compose down -v
 - EBS: cancellare volumi orfani
 - Elastic IP: rilasciare se allocato
 
-## 11) Stima costi (molto approssimativa)
+## 11) Chiusura evento e restore futuro
+
+### A. Cosa salvare prima di chiudere
+
+Salvare almeno:
+- dump completo del database
+- export CSV di lotteria e asta
+- immagini proiezione, se usate
+- file `.env` finale con i valori effettivi
+
+### B. Backup database
+
+Creare un file SQL dal container DB:
+
+```bash
+docker compose exec -T db pg_dump -U postgres -d ticino_gala > backup_ticino_gala.sql
+```
+
+Se vuoi un formato compresso:
+
+```bash
+docker compose exec -T db pg_dump -U postgres -d ticino_gala | gzip > backup_ticino_gala.sql.gz
+```
+
+### C. Backup export applicativo
+
+Da admin esportare e conservare:
+- `/api/export/lotteria`
+- `/api/export/asta`
+
+### D. Backup immagini proiezione
+
+Se usi S3, copiare o conservare il bucket con il prefisso `projection-images/`.
+Se usi modalità locale, salvare la cartella `public/projection-images`.
+
+### E. Ripristino per il prossimo anno
+
+1. Recuperare il repository
+2. Ricreare `.env` da `.env.example`
+3. Impostare:
+   - `ADMIN_PASSWORD`
+   - `SESSION_SECRET`
+   - `DATABASE_URL`
+   - `PROJECTION_IMAGE_STORAGE`
+4. Ripristinare il database:
+
+```bash
+docker compose exec -T db psql -U postgres -d ticino_gala < backup_ticino_gala.sql
+```
+
+   Se hai usato gzip:
+
+```bash
+gzip -dc backup_ticino_gala.sql.gz | docker compose exec -T db psql -U postgres -d ticino_gala
+```
+
+5. Ripristinare le immagini proiezione:
+   - modalità `aws`: caricare di nuovo gli oggetti nel bucket S3
+   - modalità `local`: copiare i file in `public/projection-images`
+6. Avviare con `docker compose up --build -d`
+
+### F. Cosa fare su AWS per non pagare più
+
+Per evitare ulteriore billing non basta fermare l'istanza: bisogna **terminarla**.
+
+Elenco pulizia AWS:
+- EC2: **terminate instance**
+- EBS: eliminare i volumi rimasti
+- Elastic IP: rilasciarlo, se allocato
+- S3: svuotare e cancellare il bucket immagini, se non serve più
+- Snapshots: eliminare eventuali snapshot manuali
+- CloudWatch Logs: eliminare gruppi di log inutili
+- IAM: rimuovere ruoli/policy creati solo per l'evento, se non servono più
+
+Se vuoi conservare i dati per il prossimo anno ma fermare i costi, salva prima i backup e poi termina l'istanza EC2.
+
+## 12) Stima costi (molto approssimativa)
 
 Con 1x t3.micro + disco base, per 1 weekend evento:
 - pochi CHF/USD (ordine di grandezza molto basso)
@@ -237,7 +313,7 @@ Con 1x t3.micro + disco base, per 1 weekend evento:
 
 Se istanza viene terminata a fine evento, i costi ricorrenti si azzerano quasi totalmente (resta solo eventuale storage non eliminato).
 
-## 12) Troubleshooting
+## 13) Troubleshooting
 
 ### Errore login admin
 - Verificare `ADMIN_PASSWORD` in `.env`
@@ -255,7 +331,7 @@ Se istanza viene terminata a fine evento, i costi ricorrenti si azzerano quasi t
 ### Dati “spariti” dopo reset
 - Probabile uso di `docker compose down -v` (cancella volume DB)
 
-## 13) Struttura progetto
+## 14) Struttura progetto
 
 - `app/` pagine public/admin + API routes
 - `components/` componenti UI
